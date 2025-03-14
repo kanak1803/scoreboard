@@ -92,81 +92,117 @@ export default function Scoreboard({ players }) {
     }
   };
 
+  // Calculate total scores for each player
+  const getTotalScore = (player) => {
+    return rounds.reduce((sum, round) => sum + Number(round[player] || 0), 0);
+  };
+
+  // Function to determine the row background color
+  const getRowClass = (player) => {
+    if (!showFinalScores) return "";
+
+    const playerScore = getTotalScore(player);
+    const minScore = Math.min(...players.map((p) => getTotalScore(p)));
+
+    return playerScore === minScore ? "bg-green-100 dark:bg-green-900" : "";
+  };
+
   return (
-    <div className="p-4">
-      <h1 className="text-2xl mb-4">Scoreboard</h1>
-      {error && <p className="text-red-500">{error}</p>}
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="bg-[var(--card-bg)] rounded-lg shadow-md p-6">
+        <h1 className="text-3xl font-bold text-[var(--accent)] mb-6 text-center">
+          Scoreboard
+        </h1>
 
-      <table className="table-auto w-full border border-gray-500">
-        <thead>
-          <tr>
-            <th className="border p-2">Player</th>
-            {rounds.map((_, index) => (
-              <th key={index} className="border p-2">
-                Round {index + 1}
-              </th>
-            ))}
-            <th className="border p-2">Current</th>
-            {showFinalScores && <th className="border p-2">Total</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {players.map((player) => (
-            <tr key={player}>
-              <td className="border p-2">{player}</td>
-              {rounds.map((round, index) => (
-                <td key={index} className="border p-2">
-                  {round[player]}
-                </td>
-              ))}
-              <td className="border p-2">
-                <input
-                  type="number"
-                  value={scores[player] || ""}
-                  onChange={(e) => handleScoreChange(player, e.target.value)}
-                  className="w-16 p-1 border rounded"
-                />
-              </td>
-              {showFinalScores && (
-                <td className="border p-2 font-bold">
-                  {rounds.reduce(
-                    (sum, round) => sum + Number(round[player] || 0),
-                    0
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-[var(--background)] rounded-lg overflow-hidden">
+            <thead className="bg-[var(--accent)] text-white">
+              <tr>
+                <th className="py-3 px-4 text-left">Player</th>
+                {rounds.map((_, index) => (
+                  <th key={index} className="py-3 px-4 text-center">
+                    Round {index + 1}
+                  </th>
+                ))}
+                <th className="py-3 px-4 text-center">Current</th>
+                {showFinalScores && (
+                  <th className="py-3 px-4 text-center">Total</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((player, playerIndex) => (
+                <tr
+                  key={player}
+                  className={`${getRowClass(player)} ${
+                    playerIndex % 2 === 0 ? "bg-opacity-50" : ""
+                  } border-b`}
+                >
+                  <td className="py-3 px-4 font-medium">{player}</td>
+                  {rounds.map((round, index) => (
+                    <td key={index} className="py-3 px-4 text-center">
+                      {round[player]}
+                    </td>
+                  ))}
+                  <td className="py-3 px-4 text-center">
+                    <input
+                      type="number"
+                      value={scores[player] || ""}
+                      onChange={(e) =>
+                        handleScoreChange(player, e.target.value)
+                      }
+                      disabled={gameFinished}
+                      className="w-20 p-2 border rounded-md text-center focus:outline-none focus:ring-2 focus:ring-[var(--accent)] bg-[var(--background)]"
+                    />
+                  </td>
+                  {showFinalScores && (
+                    <td className="py-3 px-4 text-center font-bold">
+                      {getTotalScore(player)}
+                    </td>
                   )}
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {!gameFinished ? (
-        <div className="mt-4 flex gap-2">
+        {gameFinished ? (
+          <div className="mt-6 p-4 bg-green-100 dark:bg-green-900 rounded-lg text-center">
+            <h2 className="text-2xl font-bold mb-2">🏆 Winner: {winner}</h2>
+            <p className="text-sm opacity-75">Game Complete!</p>
+          </div>
+        ) : (
+          <div className="mt-6 flex flex-wrap gap-4 justify-center">
+            <button
+              className="bg-[var(--accent)] hover:bg-[var(--accent-dark)] text-white px-6 py-3 rounded-md transition-colors flex-1"
+              onClick={startNextRound}
+            >
+              Next Round
+            </button>
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md transition-colors flex-1"
+              onClick={finishGame}
+            >
+              Finish Game
+            </button>
+          </div>
+        )}
+
+        <div className="mt-4 flex justify-center">
           <button
-            className="bg-blue-500 text-white p-2 rounded"
-            onClick={startNextRound}
+            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition-colors"
+            onClick={resetGame}
           >
-            Next Round
-          </button>
-          <button
-            className="bg-red-500 text-white p-2 rounded"
-            onClick={finishGame}
-          >
-            Finish Game
+            Reset Game
           </button>
         </div>
-      ) : (
-        <div className="mt-4">
-          <h2 className="text-green-500 text-xl">🏆 Winner: {winner}</h2>
-        </div>
-      )}
-
-      <button
-        className="bg-gray-500 text-white p-2 mt-4 rounded"
-        onClick={resetGame}
-      >
-        Reset Game
-      </button>
+      </div>
     </div>
   );
 }
