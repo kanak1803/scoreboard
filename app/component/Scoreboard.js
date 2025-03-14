@@ -325,14 +325,14 @@ export default function Scoreboard({ players }) {
           </div>
         )}
 
-        <div className="mt-4 flex justify-center">
+        {/* <div className="mt-4 flex justify-center">
           <button
             className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition-colors"
             onClick={resetGame}
           >
             Reset Game
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );
