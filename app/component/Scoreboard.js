@@ -8,6 +8,7 @@ export default function Scoreboard({ players }) {
   const [showFinalScores, setShowFinalScores] = useState(false);
   const [winner, setWinner] = useState("");
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("current"); // "current", "history", or "summary"
 
   // Load scores from localStorage on component mount
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function Scoreboard({ players }) {
     setGameFinished(true);
     setShowFinalScores(true);
     setError("");
+    setActiveTab("summary");
 
     // Calculate Winner
     const totalScores = players.map((player) => ({
@@ -88,6 +90,7 @@ export default function Scoreboard({ players }) {
       setShowFinalScores(false);
       setWinner("");
       setError("");
+      setActiveTab("current");
       localStorage.removeItem("rounds");
     }
   };
@@ -108,19 +111,55 @@ export default function Scoreboard({ players }) {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="bg-[var(--card-bg)] rounded-lg shadow-md p-6">
-        <h1 className="text-3xl font-bold text-[var(--accent)] mb-6 text-center">
+    <div className="p-4 max-w-4xl mx-auto">
+      <div className="bg-[var(--card-bg)] rounded-lg shadow-md p-4 md:p-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-[var(--accent)] mb-4 text-center">
           Scoreboard
         </h1>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-4 text-sm">
             {error}
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        {/* Mobile tab navigation */}
+        <div className="flex border-b mb-4 md:hidden">
+          <button
+            className={`flex-1 py-2 text-center text-sm font-medium ${
+              activeTab === "current"
+                ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
+                : ""
+            }`}
+            onClick={() => setActiveTab("current")}
+          >
+            Current Round
+          </button>
+          <button
+            className={`flex-1 py-2 text-center text-sm font-medium ${
+              activeTab === "history"
+                ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
+                : ""
+            }`}
+            onClick={() => setActiveTab("history")}
+            disabled={rounds.length === 0}
+          >
+            History
+          </button>
+          <button
+            className={`flex-1 py-2 text-center text-sm font-medium ${
+              activeTab === "summary"
+                ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
+                : ""
+            }`}
+            onClick={() => setActiveTab("summary")}
+          >
+            Summary
+          </button>
+        </div>
+
+        {/* Desktop view (full table) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full bg-[var(--background)] rounded-lg overflow-hidden">
             <thead className="bg-[var(--accent)] text-white">
               <tr>
@@ -172,21 +211,113 @@ export default function Scoreboard({ players }) {
           </table>
         </div>
 
+        {/* Mobile view - Current Round */}
+        {activeTab === "current" && (
+          <div className="md:hidden">
+            <div className="bg-[var(--background)] rounded-lg overflow-hidden">
+              {players.map((player, index) => (
+                <div
+                  key={player}
+                  className={`p-3 ${
+                    index % 2 === 0 ? "bg-opacity-75" : ""
+                  } border-b flex justify-between items-center`}
+                >
+                  <div className="font-medium">{player}</div>
+                  <input
+                    type="number"
+                    value={scores[player] || ""}
+                    onChange={(e) => handleScoreChange(player, e.target.value)}
+                    disabled={gameFinished}
+                    className="w-20 p-2 border rounded-md text-center focus:outline-none focus:ring-2 focus:ring-[var(--accent)] bg-[var(--background)]"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile view - History */}
+        {activeTab === "history" && (
+          <div className="md:hidden">
+            {rounds.length > 0 ? (
+              rounds.map((round, roundIndex) => (
+                <div key={roundIndex} className="mb-4">
+                  <h3 className="font-medium text-sm text-[var(--accent)] mb-2">
+                    Round {roundIndex + 1}
+                  </h3>
+                  <div className="bg-[var(--background)] rounded-lg overflow-hidden">
+                    {players.map((player, playerIndex) => (
+                      <div
+                        key={player}
+                        className={`p-3 ${
+                          playerIndex % 2 === 0 ? "bg-opacity-75" : ""
+                        } border-b flex justify-between items-center`}
+                      >
+                        <div className="font-medium">{player}</div>
+                        <div>{round[player]}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-gray-500">
+                No rounds played yet
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mobile view - Summary */}
+        {activeTab === "summary" && (
+          <div className="md:hidden">
+            <div className="bg-[var(--background)] rounded-lg overflow-hidden">
+              {players.map((player, playerIndex) => {
+                const total = getTotalScore(player);
+                const isWinner =
+                  showFinalScores &&
+                  total === Math.min(...players.map((p) => getTotalScore(p)));
+
+                return (
+                  <div
+                    key={player}
+                    className={`p-3 ${
+                      isWinner
+                        ? "bg-green-100 dark:bg-green-900"
+                        : playerIndex % 2 === 0
+                        ? "bg-opacity-75"
+                        : ""
+                    } border-b flex justify-between items-center`}
+                  >
+                    <div className="font-medium flex items-center">
+                      {isWinner && <span className="mr-1">🏆</span>}
+                      {player}
+                    </div>
+                    <div className="font-bold">{total}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {gameFinished ? (
           <div className="mt-6 p-4 bg-green-100 dark:bg-green-900 rounded-lg text-center">
-            <h2 className="text-2xl font-bold mb-2">🏆 Winner: {winner}</h2>
+            <h2 className="text-xl md:text-2xl font-bold mb-1">
+              🏆 Winner: {winner}
+            </h2>
             <p className="text-sm opacity-75">Game Complete!</p>
           </div>
         ) : (
-          <div className="mt-6 flex flex-wrap gap-4 justify-center">
+          <div className="mt-6 flex flex-wrap gap-3 justify-center">
             <button
-              className="bg-[var(--accent)] hover:bg-[var(--accent-dark)] text-white px-6 py-3 rounded-md transition-colors flex-1"
+              className="bg-[var(--accent)] hover:bg-[var(--accent-dark)] text-white px-5 py-2 rounded-md transition-colors flex-1"
               onClick={startNextRound}
             >
               Next Round
             </button>
             <button
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md transition-colors flex-1"
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-md transition-colors flex-1"
               onClick={finishGame}
             >
               Finish Game
